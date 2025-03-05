@@ -1,4 +1,6 @@
 from datetime import datetime
+from ensurepip import bootstrap
+
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
@@ -37,9 +39,16 @@ def format_data(res):
 
 def stream_data():
     import json
+    import kafka
+    import time
+
     res = get_data()
     res = format_data(res)
-    print(json.dumps(res,indent=2))
+    #print(json.dumps(res,indent=2))
+
+    producer = kafka.KafkaProducer(bootstrap_servers = ['localhost:9092'], max_block_ms=5000)
+
+    producer.send('Users_Created', json.dumps(res).encode('utf-8'))
 
 
 # with DAG('user_automation',
