@@ -41,11 +41,11 @@ def stream_data():
     import time
     import logging
 
-    curr_time = time()
+    curr_time = time.time()
 
     producer = kafka.KafkaProducer(bootstrap_servers = ['broker:29092'], max_block_ms=5000)
     while True:
-        if time() > curr_time + 60: #1 minute
+        if time.time() > curr_time + 60: #1 minute
             break
         try:
             res = get_data()
@@ -53,7 +53,7 @@ def stream_data():
 
             producer.send('users_created', json.dumps(res).encode('utf-8'))
         except Exception as e:
-            logging.error(f'An error occured: {e}')
+            logging.error(f'An error occurred: {e}')
             continue
 
 
