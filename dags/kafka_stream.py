@@ -1,5 +1,4 @@
 from datetime import datetime
-from ensurepip import bootstrap
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -10,7 +9,6 @@ default_args = {
 }
 
 def get_data():
-    import json
     import requests
 
     res=requests.get("https://randomuser.me/api/").json()
@@ -41,24 +39,32 @@ def stream_data():
     import json
     import kafka
     import time
+    import logging
 
-    res = get_data()
-    res = format_data(res)
-    #print(json.dumps(res,indent=2))
+    curr_time = time()
 
-    producer = kafka.KafkaProducer(bootstrap_servers = ['localhost:9092'], max_block_ms=5000)
+    producer = kafka.KafkaProducer(bootstrap_servers = ['broker:29092'], max_block_ms=5000)
+    while True:
+        if time() > curr_time + 60: #1 minute
+            break
+        try:
+            res = get_data()
+            res = format_data(res)
 
-    producer.send('Users_Created', json.dumps(res).encode('utf-8'))
+            producer.send('users_created', json.dumps(res).encode('utf-8'))
+        except Exception as e:
+            logging.error(f'An error occured: {e}')
+            continue
 
 
-# with DAG('user_automation',
-#          default_args = default_args,
-#          schedule_interval='@daily',
-#          catchup=False) as dag:
-#
-#     streaming_task = PythonOperator(
-#         task_id='stream_data_from_api',
-# #        python_callable=
-#     )
+with DAG('user_automation',
+         default_args = default_args,
+         schedule_interval='@daily',
+         catchup=False) as dag:
 
-stream_data()
+    streaming_task = PythonOperator(
+        task_id='stream_data_from_api',
+        python_callable=stream_data
+    )
+
+# stream_data()
